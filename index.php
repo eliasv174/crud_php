@@ -211,8 +211,10 @@ $resultado_empleados = $db_conexion->query($sql_empleados);
 
             <form
                 id="form_empleados"
+                class="needs-validation"
                 action="crud_empleado.php"
                 method="post"
+                novalidate
             >
                 <div class="modal-header">
                     <div>
@@ -269,9 +271,18 @@ $resultado_empleados = $db_conexion->query($sql_empleados);
                                 id="txt_codigo"
                                 class="form-control"
                                 placeholder="Ejemplo: E001"
-                                maxlength="20"
+                                maxlength="10"
+                                pattern="[A-Za-z0-9-]{2,10}"
                                 required
                             >
+
+                            <div class="valid-feedback">
+                                Código válido.
+                            </div>
+
+                            <div class="invalid-feedback">
+                                Ingrese un código de 2 a 10 caracteres usando letras, números o guiones.
+                            </div>
                         </div>
 
                         <div class="col-md-4">
@@ -289,8 +300,17 @@ $resultado_empleados = $db_conexion->query($sql_empleados);
                                 class="form-control"
                                 placeholder="Ejemplo: Ana Lucía"
                                 maxlength="100"
+                                minlength="2"
                                 required
                             >
+
+                            <div class="valid-feedback">
+                                Nombres válidos.
+                            </div>
+
+                            <div class="invalid-feedback">
+                                Ingrese los nombres del empleado.
+                            </div>
                         </div>
 
                         <div class="col-md-4">
@@ -308,8 +328,17 @@ $resultado_empleados = $db_conexion->query($sql_empleados);
                                 class="form-control"
                                 placeholder="Ejemplo: López Pérez"
                                 maxlength="100"
+                                minlength="2"
                                 required
                             >
+
+                            <div class="valid-feedback">
+                                Apellidos válidos.
+                            </div>
+
+                            <div class="invalid-feedback">
+                                Ingrese los apellidos del empleado.
+                            </div>
                         </div>
 
                         <div class="col-md-4">
@@ -328,6 +357,14 @@ $resultado_empleados = $db_conexion->query($sql_empleados);
                                 placeholder="Ejemplo: Zona 1, Ciudad"
                                 maxlength="200"
                             >
+
+                            <div class="valid-feedback">
+                                Dirección válida.
+                            </div>
+
+                            <div class="invalid-feedback">
+                                Revise la dirección ingresada.
+                            </div>
                         </div>
 
                         <div class="col-md-4">
@@ -344,9 +381,19 @@ $resultado_empleados = $db_conexion->query($sql_empleados);
                                 id="txt_telefono"
                                 class="form-control"
                                 placeholder="Ejemplo: 55551234"
-                                maxlength="20"
-                                inputmode="tel"
+                                maxlength="8"
+                                minlength="8"
+                                pattern="[0-9]{8}"
+                                inputmode="numeric"
                             >
+
+                            <div class="valid-feedback">
+                                Teléfono válido.
+                            </div>
+
+                            <div class="invalid-feedback">
+                                Ingrese un número de teléfono de 8 dígitos.
+                            </div>
                         </div>
 
                         <div class="col-md-6">
@@ -364,6 +411,14 @@ $resultado_empleados = $db_conexion->query($sql_empleados);
                                 class="form-control"
                                 required
                             >
+
+                            <div class="valid-feedback">
+                                Fecha válida.
+                            </div>
+
+                            <div class="invalid-feedback">
+                                Seleccione la fecha de nacimiento.
+                            </div>
                         </div>
 
                         <div class="col-md-6">
@@ -390,6 +445,14 @@ $resultado_empleados = $db_conexion->query($sql_empleados);
                                     </option>
                                 <?php endwhile; ?>
                             </select>
+
+                            <div class="valid-feedback">
+                                Puesto seleccionado.
+                            </div>
+
+                            <div class="invalid-feedback">
+                                Seleccione un puesto válido.
+                            </div>
                         </div>
 
                     </div>
@@ -463,6 +526,7 @@ $resultado_empleados = $db_conexion->query($sql_empleados);
 
     function prepararNuevoEmpleado() {
         formulario.reset();
+        formulario.classList.remove("was-validated");
 
         document.getElementById("txt_id").value = 0;
 
@@ -476,6 +540,8 @@ $resultado_empleados = $db_conexion->query($sql_empleados);
     }
 
     function prepararEdicionEmpleado(fila) {
+        formulario.classList.remove("was-validated");
+
         document.getElementById("txt_id").value = fila.dataset.id;
         document.getElementById("txt_codigo").value = fila.dataset.codigo;
         document.getElementById("txt_nombres").value = fila.dataset.nombres;
@@ -502,6 +568,28 @@ $resultado_empleados = $db_conexion->query($sql_empleados);
         if (fila) {
             prepararEdicionEmpleado(fila);
         }
+    });
+
+    formulario.addEventListener("submit", function (evento) {
+        const botonPresionado = evento.submitter;
+
+        /*
+         * La eliminación solamente necesita un ID válido.
+         * Los demás campos no se validan para esta operación.
+         */
+        if (
+            botonPresionado &&
+            botonPresionado.name === "btn_eliminar"
+        ) {
+            return;
+        }
+
+        if (!formulario.checkValidity()) {
+            evento.preventDefault();
+            evento.stopPropagation();
+        }
+
+        formulario.classList.add("was-validated");
     });
 
     btnEliminar.addEventListener("click", function (evento) {
