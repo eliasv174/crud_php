@@ -1,11 +1,11 @@
 <?php
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-require_once("config.php");
+require_once __DIR__ . '/config.php';
 
 function escapar(string $valor): string
 {
-    return htmlspecialchars($valor, ENT_QUOTES, "UTF-8");
+    return htmlspecialchars($valor, ENT_QUOTES, 'UTF-8');
 }
 
 $db_conexion = get_db_connection();
@@ -13,7 +13,7 @@ $db_conexion = get_db_connection();
 /*
  * Cargar puestos.
  */
-$sql_puestos = "SELECT id_puesto, puesto FROM puestos ORDER BY puesto";
+$sql_puestos = 'SELECT id_puesto, puesto FROM puestos ORDER BY puesto';
 $resultado_puestos = $db_conexion->query($sql_puestos);
 
 /*
@@ -27,9 +27,9 @@ $registros_por_pagina = 5;
 $buscar_like = "%{$buscar}%";
 
 // 1. Obtener count total
-$sql_count = "SELECT COUNT(*) as total FROM empleados AS e INNER JOIN puestos AS p ON e.id_puesto = p.id_puesto WHERE e.codigo LIKE ? OR e.nombres LIKE ? OR e.apellidos LIKE ?";
+$sql_count = 'SELECT COUNT(*) as total FROM empleados AS e INNER JOIN puestos AS p ON e.id_puesto = p.id_puesto WHERE e.codigo LIKE ? OR e.nombres LIKE ? OR e.apellidos LIKE ?';
 $stmt_count = $db_conexion->prepare($sql_count);
-$stmt_count->bind_param("sss", $buscar_like, $buscar_like, $buscar_like);
+$stmt_count->bind_param('sss', $buscar_like, $buscar_like, $buscar_like);
 $stmt_count->execute();
 $resultado_count = $stmt_count->get_result();
 $fila_count = $resultado_count->fetch_assoc();
@@ -37,25 +37,26 @@ $total_registros = (int) $fila_count['total'];
 $stmt_count->close();
 
 $total_paginas = ceil($total_registros / $registros_por_pagina);
-if ($total_paginas == 0)
+if ($total_paginas == 0) {
     $total_paginas = 1;
-if ($pagina_actual > $total_paginas)
+}
+if ($pagina_actual > $total_paginas) {
     $pagina_actual = $total_paginas;
+}
 
 $offset = ($pagina_actual - 1) * $registros_por_pagina;
 
 // 2. Obtener empleados paginados
-$sql_empleados = "SELECT e.id_empleado, e.codigo, e.nombres, e.apellidos, e.direccion, e.telefono, e.fecha_nacimiento, e.id_puesto, p.puesto 
+$sql_empleados = 'SELECT e.id_empleado, e.codigo, e.nombres, e.apellidos, e.direccion, e.telefono, e.fecha_nacimiento, e.id_puesto, p.puesto 
                   FROM empleados AS e INNER JOIN puestos AS p ON e.id_puesto = p.id_puesto 
                   WHERE e.codigo LIKE ? OR e.nombres LIKE ? OR e.apellidos LIKE ? 
-                  ORDER BY e.id_empleado DESC LIMIT ? OFFSET ?";
+                  ORDER BY e.id_empleado DESC LIMIT ? OFFSET ?';
 $stmt_empleados = $db_conexion->prepare($sql_empleados);
-$stmt_empleados->bind_param("sssii", $buscar_like, $buscar_like, $buscar_like, $registros_por_pagina, $offset);
+$stmt_empleados->bind_param('sssii', $buscar_like, $buscar_like, $buscar_like, $registros_por_pagina, $offset);
 $stmt_empleados->execute();
 $resultado_empleados = $stmt_empleados->get_result();
 $stmt_empleados->close();
 
-// Parametro de busqueda para paginacion (URL)
 $query_buscar = empty($buscar) ? '' : '&buscar=' . urlencode($buscar);
 ?>
 <!doctype html>
@@ -65,7 +66,7 @@ $query_buscar = empty($buscar) ? '' : '&buscar=' . urlencode($buscar);
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Gestión de empleados</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <style>
         body {
             background-color: #f4f6f9;
@@ -113,9 +114,7 @@ $query_buscar = empty($buscar) ? '' : '&buscar=' . urlencode($buscar);
     </header>
 
     <main class="container pb-5">
-
-        <!-- Cargar mensajes del sistema -->
-            <?php mostrar_mensajes(); ?>
+        <?php mostrar_mensajes(); ?>
 
         <div class="card">
             <div class="card-header bg-white py-3">
@@ -127,9 +126,9 @@ $query_buscar = empty($buscar) ? '' : '&buscar=' . urlencode($buscar);
                             style="max-width: 320px;" placeholder="Buscar empleado..." aria-label="Buscar empleado"
                             value="<?= escapar($buscar) ?>">
                         <button type="submit" class="btn btn-outline-secondary">Buscar</button>
-                            <?php if (!empty($buscar)): ?>
+                        <?php if (!empty($buscar)): ?>
                             <a href="index.php" class="btn btn-outline-danger">Limpiar</a>
-                            <?php endif; ?>
+                        <?php endif; ?>
                     </form>
                 </div>
             </div>
@@ -149,31 +148,30 @@ $query_buscar = empty($buscar) ? '' : '&buscar=' . urlencode($buscar);
                             </tr>
                         </thead>
                         <tbody id="tbl_empleados">
-                                    <?php if ($resultado_empleados->num_rows > 0): ?>
-                                        <?php while ($fila = $resultado_empleados->fetch_assoc()): ?>
-                                    <tr data-id="<?= (int) $fila["id_empleado"] ?>"
-                                        data-id-puesto="<?= (int) $fila["id_puesto"] ?>"
-                                        data-codigo="<?= escapar($fila["codigo"]) ?>"
-                                        data-nombres="<?= escapar($fila["nombres"]) ?>"
-                                        data-apellidos="<?= escapar($fila["apellidos"]) ?>"
-                                        data-direccion="<?= escapar($fila["direccion"]) ?>"
-                                        data-telefono="<?= escapar($fila["telefono"]) ?>"
-                                        data-nacimiento="<?= escapar($fila["fecha_nacimiento"]) ?>">
-                                        <td><?= escapar($fila["codigo"]) ?></td>
-                                        <td><?= escapar($fila["nombres"]) ?></td>
-                                        <td><?= escapar($fila["apellidos"]) ?></td>
-                                        <td><?= escapar($fila["direccion"]) ?></td>
-                                        <td><?= escapar($fila["telefono"]) ?></td>
-                                        <td><?= escapar($fila["fecha_nacimiento"]) ?></td>
-                                        <td><?= escapar($fila["puesto"]) ?></td>
+                            <?php if ($resultado_empleados->num_rows > 0): ?>
+                                <?php while ($fila = $resultado_empleados->fetch_assoc()): ?>
+                                    <tr data-id="<?= (int) $fila['id_empleado'] ?>"
+                                        data-id-puesto="<?= (int) $fila['id_puesto'] ?>"
+                                        data-codigo="<?= escapar($fila['codigo']) ?>"
+                                        data-nombres="<?= escapar($fila['nombres']) ?>"
+                                        data-apellidos="<?= escapar($fila['apellidos']) ?>"
+                                        data-direccion="<?= escapar($fila['direccion']) ?>"
+                                        data-telefono="<?= escapar($fila['telefono']) ?>"
+                                        data-nacimiento="<?= escapar($fila['fecha_nacimiento']) ?>">
+                                        <td><?= escapar($fila['codigo']) ?></td>
+                                        <td><?= escapar($fila['nombres']) ?></td>
+                                        <td><?= escapar($fila['apellidos']) ?></td>
+                                        <td><?= escapar($fila['direccion']) ?></td>
+                                        <td><?= escapar($fila['telefono']) ?></td>
+                                        <td><?= escapar($fila['fecha_nacimiento']) ?></td>
+                                        <td><?= escapar($fila['puesto']) ?></td>
                                     </tr>
-                                        <?php endwhile; ?>
-                                    <?php else: ?>
+                                <?php endwhile; ?>
+                            <?php else: ?>
                                 <tr id="fila_sin_registros">
-                                    <td colspan="7" class="text-center text-secondary py-4">No hay empleados encontrados.
-                                    </td>
+                                    <td colspan="7" class="text-center text-secondary py-4">No hay empleados encontrados.</td>
                                 </tr>
-                                    <?php endif; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -189,19 +187,17 @@ $query_buscar = empty($buscar) ? '' : '&buscar=' . urlencode($buscar);
                 <nav aria-label="Navegación de páginas">
                     <ul class="pagination pagination-sm mb-0">
                         <li class="page-item <?= ($pagina_actual <= 1) ? 'disabled' : '' ?>">
-                            <a class="page-link"
-                                href="?pagina=<?= $pagina_actual - 1 ?><?= $query_buscar ?>">Anterior</a>
+                            <a class="page-link" href="?pagina=<?= $pagina_actual - 1 ?><?= $query_buscar ?>">Anterior</a>
                         </li>
 
                         <?php for ($i = 1; $i <= $total_paginas; $i++): ?>
                             <li class="page-item <?= ($pagina_actual == $i) ? 'active' : '' ?>">
                                 <a class="page-link" href="?pagina=<?= $i ?><?= $query_buscar ?>"><?= $i ?></a>
                             </li>
-                            <?php endfor; ?>
+                        <?php endfor; ?>
 
                         <li class="page-item <?= ($pagina_actual >= $total_paginas) ? 'disabled' : '' ?>">
-                            <a class="page-link"
-                                href="?pagina=<?= $pagina_actual + 1 ?><?= $query_buscar ?>">Siguiente</a>
+                            <a class="page-link" href="?pagina=<?= $pagina_actual + 1 ?><?= $query_buscar ?>">Siguiente</a>
                         </li>
                     </ul>
                 </nav>
@@ -209,13 +205,10 @@ $query_buscar = empty($buscar) ? '' : '&buscar=' . urlencode($buscar);
         </div>
     </main>
 
-    <!-- Modal -->
-    <div class="modal fade" id="modal_empleados" tabindex="-1" aria-labelledby="titulo_modal_empleados"
-        aria-hidden="true">
+    <div class="modal fade" id="modal_empleados" tabindex="-1" aria-labelledby="titulo_modal_empleados" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content">
                 <form id="form_empleados" class="needs-validation" action="crud_empleado.php" method="post" novalidate>
-                    <!-- CSRF Token -->
                     <input type="hidden" name="csrf_token" value="<?= escapar(get_csrf_token()) ?>">
 
                     <div class="modal-header">
@@ -236,8 +229,7 @@ $query_buscar = empty($buscar) ? '' : '&buscar=' . urlencode($buscar);
                                 <input type="text" name="txt_codigo" id="txt_codigo" class="form-control"
                                     placeholder="Ejemplo: E001" maxlength="10" pattern="[A-Za-z0-9-]{2,10}" required>
                                 <div class="valid-feedback">Código válido.</div>
-                                <div class="invalid-feedback">Ingrese un código de 2 a 10 caracteres usando letras,
-                                    números o guiones.</div>
+                                <div class="invalid-feedback">Ingrese un código de 2 a 10 caracteres usando letras, números o guiones.</div>
                             </div>
                             <div class="col-md-4">
                                 <label for="txt_nombres" class="form-label required">Nombres</label>
@@ -278,13 +270,11 @@ $query_buscar = empty($buscar) ? '' : '&buscar=' . urlencode($buscar);
                                 <label for="drop_puesto" class="form-label required">Puesto</label>
                                 <select class="form-select" name="drop_puesto" id="drop_puesto" required>
                                     <option value="" selected disabled>Seleccione un puesto</option>
-                                         <?php
-                                         $resultado_puestos->data_seek(0);
-                                         while ($puesto = $resultado_puestos->fetch_assoc()): ?>
-
-                                        <option value="<?= (int) $puesto["id_puesto"] ?>"><?= escapar($puesto["puesto"]) ?>
-                                        </option>
-                                        <?php endwhile; ?>
+                                    <?php
+                                    $resultado_puestos->data_seek(0);
+                                    while ($puesto = $resultado_puestos->fetch_assoc()): ?>
+                                        <option value="<?= (int) $puesto['id_puesto'] ?>"><?= escapar($puesto['puesto']) ?></option>
+                                    <?php endwhile; ?>
                                 </select>
                                 <div class="valid-feedback">Puesto seleccionado.</div>
                                 <div class="invalid-feedback">Seleccione un puesto válido.</div>
@@ -292,22 +282,17 @@ $query_buscar = empty($buscar) ? '' : '&buscar=' . urlencode($buscar);
                         </div>
                     </div>
                     <div class="modal-footer">
-
-                        <button type="button" class="btn btn-outline-secondary"
-                            data-bs-dismiss="modal">Cancelar</button>
-                        <!-- Update de btn_eliminar: Ensure it sends via POST properly along with other fields inside the form -->
-                        <button type="submit" name="btn_eliminar" id="btn_eliminar" class="btn btn-danger d-none"
-                            formnovalidate>Eliminar</button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" name="btn_eliminar" id="btn_eliminar" class="btn btn-danger d-none" formnovalidate>Eliminar</button>
                         <button type="submit" name="btn_modificar" id="btn_modificar" class="btn btn-success d-none">Guardar cambios</button>
-                        <button type="submit" name="btn_agregar" id="btn_agregar" class="btn btn-primary">Agregar
-                            empleado</button>
+                        <button type="submit" name="btn_agregar" id="btn_agregar" class="btn btn-primary">Agregar empleado</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     <script>
         "use strict";
         const modalElemento = document.getElementById("modal_empleados");
@@ -366,7 +351,7 @@ $query_buscar = empty($buscar) ? '' : '&buscar=' . urlencode($buscar);
                 if (!confirmar) {
                     evento.preventDefault();
                 }
-                return; // No frontend validation required for delete
+                return;
             }
 
             if (!formulario.checkValidity()) {
@@ -383,7 +368,7 @@ $query_buscar = empty($buscar) ? '' : '&buscar=' . urlencode($buscar);
     </script>
 </body>
 </html>
-            <?php
-            $resultado_puestos->free();
-            $db_conexion->close();
-            ?>
+<?php
+$resultado_puestos->free();
+$db_conexion->close();
+?>
